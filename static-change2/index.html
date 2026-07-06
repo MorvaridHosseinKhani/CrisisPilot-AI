@@ -1,1 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrisisPilot AI - Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="material-symbols-outlined logo-icon">radar</span>
+                <span class="logo-text">CrisisPilot AI</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+                <a href="#" class="nav-item"><span class="material-symbols-outlined">warning</span> Incidents</a>
+                <a href="#" class="nav-item"><span class="material-symbols-outlined">inventory_2</span> Resources</a>
+                <a href="#" class="nav-item"><span class="material-symbols-outlined">group</span> Volunteers</a>
+                <a href="#" class="nav-item"><span class="material-symbols-outlined">campaign</span> Comms</a>
+                <a href="#" class="nav-item"><span class="material-symbols-outlined">insights</span> Analytics</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="agent-status-indicator">
+                    <div class="pulse-dot green"></div>
+                    <span>System Online</span>
+                </div>
+                <a href="#" class="nav-item"><span class="material-symbols-outlined">settings</span> Settings</a>
+            </div>
+        </aside>
 
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <span>Platform</span> <span class="material-symbols-outlined separator">chevron_right</span> <span class="current">Global Dashboard</span>
+                </div>
+                <div class="topbar-actions">
+                    <div class="scenario-controls">
+                        <select id="scenario-selector" class="dropdown">
+                            <option value="" disabled selected>Select Simulation Scenario...</option>
+                            <option value="earthquake">Operation: Tremor Response (Category 7 EQ)</option>
+                            <option value="hurricane">Operation: Coastal Shield (Category 5 Hurricane)</option>
+                            <option value="wildfire">Operation: Inferno Containment (Urban Wildfire)</option>
+                        </select>
+                        <button id="btn-run" class="btn-primary" disabled>
+                            <span class="material-symbols-outlined">play_arrow</span> Execute
+                        </button>
+                    </div>
+                    <div class="search-box">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Search operations, assets...">
+                    </div>
+                    <div class="profile-avatar">OP</div>
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                
+                <!-- KPI Row -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Active Incidents</div>
+                        <div class="kpi-value">0</div>
+                        <div class="kpi-trend text-green"><span class="material-symbols-outlined">trending_down</span> -12% vs last 24h</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Deployed Assets</div>
+                        <div class="kpi-value" id="kpi-assets">0</div>
+                        <div class="kpi-trend text-blue"><span class="material-symbols-outlined">trending_flat</span> Stable capacity</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Active Volunteers</div>
+                        <div class="kpi-value" id="kpi-volunteers">0</div>
+                        <div class="kpi-trend text-amber"><span class="material-symbols-outlined">trending_up</span> +45 on standby</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">AI Confidence Score</div>
+                        <div class="kpi-value">98.2%</div>
+                        <div class="kpi-trend text-green"><span class="material-symbols-outlined">check_circle</span> Optimal logic paths</div>
+                    </div>
+                </div>
+
+                <!-- Main Work Area -->
+                <div class="work-area">
+                    <!-- Left Column: Map & Tasks -->
+                    <div class="col-left">
+                        <div class="panel map-panel">
+                            <div class="panel-header">
+                                <h3>Geospatial Intelligence</h3>
+                                <span class="badge">LIVE FEED</span>
+                            </div>
+                            <div class="map-container" id="map-view">
+                                <div class="map-overlay-text">Awaiting Coordinate Data...</div>
+                                <!-- CSS SVG Map will be injected or styled here -->
+                            </div>
+                        </div>
+
+                        <div class="panel table-panel">
+                            <div class="panel-header">
+                                <h3>Active Directives</h3>
+                                <div class="panel-actions">
+                                    <span class="material-symbols-outlined">filter_list</span>
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>PRIORITY</th>
+                                            <th>DIRECTIVE</th>
+                                            <th>ASSIGNED AGENT</th>
+                                            <th>STATUS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="directives-body">
+                                        <tr class="empty-row"><td colspan="4">No active directives. System standing by.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Agent Workflow Pipeline -->
+                    <div class="col-right">
+                        <div class="panel pipeline-panel">
+                            <div class="panel-header">
+                                <h3>AI Orchestration Pipeline</h3>
+                                <div class="pulse-dot blue"></div>
+                            </div>
+                            <div class="pipeline-container" id="agent-pipeline">
+                                <!-- Agent nodes will be injected here via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
