@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrisisPilot AI - Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-base: #09090b; --bg-surface: #18181b; --bg-panel: #27272a;
+            --border-light: rgba(255, 255, 255, 0.08); --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa; --text-muted: #52525b;
+            --accent-blue: #3b82f6; --accent-blue-glow: rgba(59, 130, 246, 0.2);
+            --accent-red: #ef4444; --accent-amber: #f59e0b; --accent-green: #10b981;
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: all 0.2s ease-in-out;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { font-family: var(--font-main); background-color: var(--bg-base); color: var(--text-primary); overflow: hidden; font-size: 14px; }
+        .text-green { color: var(--accent-green); } .text-blue { color: var(--accent-blue); } .text-amber { color: var(--accent-amber); } .text-red { color: var(--accent-red); }
+
+        .app-container { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { width: 260px; background-color: var(--bg-surface); border-right: 1px solid var(--border-light); display: flex; flex-direction: column; }
+        .sidebar-header { height: 64px; display: flex; align-items: center; padding: 0 1.5rem; gap: 0.75rem; border-bottom: 1px solid var(--border-light); }
+        .logo-icon { color: var(--accent-blue); font-size: 24px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+        .sidebar-nav { flex: 1; padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        
+        .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--text-secondary); text-decoration: none; border-radius: 6px; transition: var(--transition); font-weight: 500; cursor: pointer; }
+        .nav-item:hover { background-color: var(--bg-panel); color: var(--text-primary); }
+        .nav-item.active { background-color: var(--accent-blue-glow); color: var(--accent-blue); border-left: 3px solid var(--accent-blue); }
+        
+        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-light); }
+        .agent-status-indicator { display: flex; align-items: center; gap: 0.5rem; padding: 0 1rem 1rem; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+        .pulse-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;}
+        .pulse-dot.green { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); animation: pulse 2s infinite; }
+        .pulse-dot.blue { background-color: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;}
+        .topbar { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; border-bottom: 1px solid var(--border-light); background-color: var(--bg-base); flex-shrink: 0;}
+        .breadcrumbs { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-weight: 500; }
+        .breadcrumbs .separator { font-size: 16px; color: var(--text-muted); } .breadcrumbs .current { color: var(--text-primary); }
+        .topbar-actions { display: flex; align-items: center; gap: 1.5rem; }
+        .scenario-controls { display: flex; align-items: center; gap: 0.75rem; }
+        .dropdown { background-color: var(--bg-surface); border: 1px solid var(--border-light); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 6px; font-family: inherit; font-size: 0.9rem; outline: none; cursor: pointer; }
+        .btn-primary { display: flex; align-items: center; gap: 0.25rem; background-color: var(--accent-blue); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+        .btn-primary:hover:not(:disabled) { background-color: #2563eb; box-shadow: 0 0 12px var(--accent-blue-glow); }
+        .btn-primary:disabled { background-color: var(--bg-panel); color: var(--text-muted); cursor: not-allowed; }
+        .search-box { display: flex; align-items: center; gap: 0.5rem; background-color: var(--bg-surface); border: 1px solid var(--border-light); padding: 0.4rem 0.75rem; border-radius: 6px; }
+        .search-box input { background: transparent; border: none; color: var(--text-primary); outline: none; width: 200px; }
+        .profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0;}
+
+        /* SPA View Control */
+        .view-section { display: none; padding: 2rem; flex-direction: column; gap: 1.5rem; animation: fadeIn 0.3s ease-out; }
+        .view-section.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Shared Dashboard Components */
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+        .kpi-card { background-color: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 8px; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .kpi-label { color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .kpi-value { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.02em; }
+        .kpi-trend { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; font-weight: 500; }
+        .kpi-trend .material-symbols-outlined { font-size: 16px; }
+
+        .work-area { display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; height: calc(100vh - 240px); }
+        .col-left, .col-right { display: flex; flex-direction: column; gap: 1.5rem; }
+        .panel { background-color: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+        .panel-header h3 { font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
+        .badge { background-color: var(--accent-red); color: white; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; letter-spacing: 0.1em; }
+
+        /* Map */
+        .map-panel { flex: 1.2; }
+        .map-container { flex: 1; background-color: var(--bg-base); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .map-overlay-text { color: var(--text-muted); font-family: monospace; font-size: 0.9rem; letter-spacing: 0.1em; z-index: 10; }
+        .map-container.active { background: radial-gradient(circle at center, var(--bg-panel) 0%, var(--bg-base) 100%); }
+        .map-container.active::before { content: ''; position: absolute; width: 200%; height: 200%; background-image: linear-gradient(var(--border-light) 1px, transparent 1px), linear-gradient(90deg, var(--border-light) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.3; transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px); animation: gridMove 20s linear infinite; }
+        @keyframes gridMove { 0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); } 100% { transform: perspective(500px) rotateX(60deg) translateY(40px) translateZ(-200px); } }
+        .radar-ping { position: absolute; width: 20px; height: 20px; background-color: var(--accent-red); border-radius: 50%; box-shadow: 0 0 20px var(--accent-red); z-index: 5; }
+        .radar-ping::after { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 2px solid var(--accent-red); border-radius: 50%; transform: translate(-50%, -50%); animation: pingRipple 2s ease-out infinite; }
+        @keyframes pingRipple { 0% { width: 100%; height: 100%; opacity: 1; } 100% { width: 400%; height: 400%; opacity: 0; } }
+
+        /* Tables */
+        .table-panel { flex: 1; }
+        .table-container { flex: 1; overflow-y: auto; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { text-align: left; padding: 0.75rem 1.5rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-light); background-color: var(--bg-surface); position: sticky; top: 0; }
+        .data-table td { padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; }
+        .data-table tr:hover:not(.empty-row) { background-color: var(--bg-panel); }
+        .priority-tag { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .tag-high { background-color: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .tag-med { background-color: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .tag-low { background-color: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .tag-info { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        /* Agent Pipeline Node Graph */
+        .pipeline-panel { flex: 1; overflow-y: auto; }
+        .pipeline-container { padding: 1.5rem; display: flex; flex-direction: column; gap: 0; position: relative; }
+        .pipeline-container::before { content: ''; position: absolute; top: 2rem; bottom: 2rem; left: 2.5rem; width: 2px; background-color: var(--border-light); z-index: 1; }
+        .agent-node { position: relative; z-index: 2; display: flex; gap: 1.5rem; padding-bottom: 1.5rem; opacity: 0.5; transition: var(--transition); }
+        .agent-node.active { opacity: 1; } .agent-node.completed { opacity: 0.8; }
+        .node-icon { width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--bg-panel); border: 2px solid var(--border-light); display: flex; align-items: center; justify-content: center; margin-top: 0.2rem; color: var(--text-secondary); flex-shrink: 0;}
+        .agent-node.active .node-icon { background-color: var(--bg-base); border-color: var(--accent-blue); color: var(--accent-blue); box-shadow: 0 0 15px var(--accent-blue-glow); }
+        .agent-node.completed .node-icon { border-color: var(--accent-green); color: var(--accent-green); }
+        .node-content { flex: 1; background-color: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 8px; padding: 1rem; }
+        .agent-node.active .node-content { border-color: rgba(59, 130, 246, 0.4); }
+        .node-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .node-title { font-weight: 600; font-size: 0.9rem; }
+        .node-time { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+        .node-console { background-color: var(--bg-base); border-radius: 4px; padding: 0.75rem; font-family: monospace; font-size: 0.75rem; color: var(--text-secondary); white-space: pre-wrap; border: 1px solid rgba(0,0,0,0.5); }
+        .typewriter-text { overflow: hidden; white-space: nowrap; border-right: 2px solid var(--accent-blue); animation: typing 2s steps(40, end), blink-caret .75s step-end infinite; }
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--accent-blue); } }
+
+        /* Generic Views Styling */
+        .view-header { margin-bottom: 1rem; }
+        .view-header h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .view-header p { color: var(--text-secondary); }
+
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+        
+        .mock-chart { height: 200px; display: flex; align-items: flex-end; gap: 10px; padding: 1rem; background: var(--bg-base); border-radius: 6px; }
+        .bar { flex: 1; background: var(--accent-blue); border-radius: 4px 4px 0 0; opacity: 0.8; transition: height 1s; }
+        .bar:nth-child(even) { background: var(--accent-amber); }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
+        .form-control { background: var(--bg-base); border: 1px solid var(--border-light); color: var(--text-primary); padding: 0.75rem; border-radius: 6px; font-family: inherit; width: 100%; max-width: 400px; }
+        .toggle-switch { width: 44px; height: 24px; background: var(--accent-blue); border-radius: 12px; position: relative; cursor: pointer; }
+        .toggle-switch::after { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 3px; right: 3px; }
+        
+        .comms-console { display: flex; gap: 1.5rem; height: 500px;}
+        .comms-templates { flex: 1; border-right: 1px solid var(--border-light); padding-right: 1.5rem; overflow-y: auto;}
+        .comms-editor { flex: 2; display: flex; flex-direction: column; gap: 1rem;}
+        .template-card { padding: 1rem; border: 1px solid var(--border-light); border-radius: 6px; margin-bottom: 1rem; cursor: pointer; background: var(--bg-base);}
+        .template-card:hover { border-color: var(--accent-blue); }
+        textarea { flex: 1; background: var(--bg-base); border: 1px solid var(--border-light); color: var(--text-primary); padding: 1rem; border-radius: 6px; font-family: inherit; resize: none; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="material-symbols-outlined logo-icon">radar</span>
+                <span class="logo-text">CrisisPilot AI</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item active" data-target="view-dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+                <a class="nav-item" data-target="view-incidents"><span class="material-symbols-outlined">warning</span> Incidents</a>
+                <a class="nav-item" data-target="view-resources"><span class="material-symbols-outlined">inventory_2</span> Resources</a>
+                <a class="nav-item" data-target="view-volunteers"><span class="material-symbols-outlined">group</span> Volunteers</a>
+                <a class="nav-item" data-target="view-comms"><span class="material-symbols-outlined">campaign</span> Comms</a>
+                <a class="nav-item" data-target="view-analytics"><span class="material-symbols-outlined">insights</span> Analytics</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="agent-status-indicator">
+                    <div class="pulse-dot green"></div>
+                    <span>System Online</span>
+                </div>
+                <a class="nav-item" data-target="view-settings"><span class="material-symbols-outlined">settings</span> Settings</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <span>Platform</span> <span class="material-symbols-outlined separator">chevron_right</span> <span class="current" id="breadcrumb-current">Global Dashboard</span>
+                </div>
+                <div class="topbar-actions">
+                    <div class="scenario-controls" id="global-controls">
+                        <select id="scenario-selector" class="dropdown">
+                            <option value="" disabled selected>Select Simulation Scenario...</option>
+                            <option value="earthquake">Operation: Tremor Response (Category 7 EQ)</option>
+                            <option value="hurricane">Operation: Coastal Shield (Category 5 Hurricane)</option>
+                            <option value="wildfire">Operation: Inferno Containment (Urban Wildfire)</option>
+                        </select>
+                        <button id="btn-run" class="btn-primary" disabled>
+                            <span class="material-symbols-outlined">play_arrow</span> Execute
+                        </button>
+                    </div>
+                    <div class="search-box">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Search operations, assets...">
+                    </div>
+                    <div class="profile-avatar">OP</div>
+                </div>
+            </header>
+
+            <!-- 1. DASHBOARD VIEW -->
+            <div id="view-dashboard" class="view-section active">
+                <div class="kpi-row">
+                    <div class="kpi-card"><div class="kpi-label">Active Incidents</div><div class="kpi-value">0</div><div class="kpi-trend text-green"><span class="material-symbols-outlined">trending_down</span> -12% vs last 24h</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Deployed Assets</div><div class="kpi-value" id="kpi-assets">0</div><div class="kpi-trend text-blue"><span class="material-symbols-outlined">trending_flat</span> Stable capacity</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Active Volunteers</div><div class="kpi-value" id="kpi-volunteers">0</div><div class="kpi-trend text-amber"><span class="material-symbols-outlined">trending_up</span> +45 on standby</div></div>
+                    <div class="kpi-card"><div class="kpi-label">AI Confidence Score</div><div class="kpi-value">98.2%</div><div class="kpi-trend text-green"><span class="material-symbols-outlined">check_circle</span> Optimal logic paths</div></div>
+                </div>
+                <div class="work-area">
+                    <div class="col-left">
+                        <div class="panel map-panel">
+                            <div class="panel-header"><h3>Geospatial Intelligence</h3><span class="badge">LIVE FEED</span></div>
+                            <div class="map-container" id="map-view"><div class="map-overlay-text">Awaiting Coordinate Data...</div></div>
+                        </div>
+                        <div class="panel table-panel">
+                            <div class="panel-header"><h3>Active Directives</h3><div class="panel-actions"><span class="material-symbols-outlined">filter_list</span> <span class="material-symbols-outlined">more_horiz</span></div></div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead><tr><th>PRIORITY</th><th>DIRECTIVE</th><th>ASSIGNED AGENT</th><th>STATUS</th></tr></thead>
+                                    <tbody id="directives-body"><tr class="empty-row"><td colspan="4">No active directives. System standing by.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-right">
+                        <div class="panel pipeline-panel">
+                            <div class="panel-header"><h3>AI Orchestration Pipeline</h3><div class="pulse-dot blue"></div></div>
+                            <div class="pipeline-container" id="agent-pipeline"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. INCIDENTS VIEW -->
+            <div id="view-incidents" class="view-section">
+                <div class="view-header"><h2>Incident Log</h2><p>Historical and active disaster events tracked by the system.</p></div>
+                <div class="panel table-panel" style="height: 600px;">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>ID</th><th>TYPE</th><th>LOCATION</th><th>SEVERITY</th><th>STATUS</th><th>DATE</th></tr></thead>
+                            <tbody>
+                                <tr><td>#INC-8892</td><td>Earthquake (Mag 7.2)</td><td>Sector Alpha, CA</td><td><span class="priority-tag tag-high">CRITICAL</span></td><td><span class="text-red">ACTIVE</span></td><td>Today, 14:02</td></tr>
+                                <tr><td>#INC-8891</td><td>Flash Flood</td><td>Riverway Basin, OR</td><td><span class="priority-tag tag-med">HIGH</span></td><td><span class="text-amber">MONITORING</span></td><td>Yesterday, 09:15</td></tr>
+                                <tr><td>#INC-8890</td><td>Chemical Spill</td><td>Industrial Park B</td><td><span class="priority-tag tag-high">CRITICAL</span></td><td><span class="text-green">RESOLVED</span></td><td>Oct 12, 11:30</td></tr>
+                                <tr><td>#INC-8889</td><td>Urban Wildfire</td><td>County Line Rd</td><td><span class="priority-tag tag-low">MEDIUM</span></td><td><span class="text-green">CONTAINED</span></td><td>Oct 10, 16:45</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. RESOURCES VIEW -->
+            <div id="view-resources" class="view-section">
+                <div class="view-header"><h2>Resource Inventory</h2><p>Live tracking of municipal assets, medical supplies, and machinery.</p></div>
+                <div class="grid-3">
+                    <div class="kpi-card"><div class="kpi-label">Heavy Machinery</div><div class="kpi-value">42 / 50</div><div class="kpi-trend text-blue">8 available</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Medical Kits</div><div class="kpi-value text-amber">120 / 1000</div><div class="kpi-trend text-amber">Low Stock Warning</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Shelter Capacity</div><div class="kpi-value">85%</div><div class="kpi-trend text-red">Nearing max limit</div></div>
+                </div>
+                <div class="panel table-panel" style="height: 400px; margin-top: 1rem;">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>ASSET CLASS</th><th>ITEM</th><th>QUANTITY</th><th>LOCATION</th><th>STATUS</th></tr></thead>
+                            <tbody>
+                                <tr><td>Vehicle</td><td>High-water Rescue Truck</td><td>15</td><td>Depot 4</td><td><span class="priority-tag tag-info">DEPLOYED</span></td></tr>
+                                <tr><td>Medical</td><td>Trauma Kit (Level 1)</td><td>450</td><td>City Gen Hospital</td><td><span class="priority-tag tag-low">STOCKED</span></td></tr>
+                                <tr><td>Supply</td><td>Sandbags</td><td>12,000</td><td>Municipal Yard</td><td><span class="priority-tag tag-low">STOCKED</span></td></tr>
+                                <tr><td>Machinery</td><td>Concrete Extractor</td><td>2</td><td>Sector Alpha</td><td><span class="priority-tag tag-info">DEPLOYED</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. VOLUNTEERS VIEW -->
+            <div id="view-volunteers" class="view-section">
+                <div class="view-header"><h2>Volunteer Roster</h2><p>AI-matched personnel available for immediate deployment.</p></div>
+                <div class="panel table-panel" style="height: 600px;">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>NAME</th><th>SPECIALTY</th><th>DISTANCE</th><th>LANGUAGES</th><th>STATUS</th></tr></thead>
+                            <tbody>
+                                <tr><td>Dr. Sarah Jenkins</td><td><span class="priority-tag tag-high">TRAUMA SURGEON</span></td><td>1.2 miles</td><td>EN, ES</td><td><span class="text-green">ON STANDBY</span></td></tr>
+                                <tr><td>Marcus Thorne</td><td><span class="priority-tag tag-med">LOGISTICS</span></td><td>4.5 miles</td><td>EN</td><td><span class="text-blue">DEPLOYED</span></td></tr>
+                                <tr><td>Elena Rodriguez</td><td><span class="priority-tag tag-info">COMMUNICATIONS</span></td><td>0.8 miles</td><td>EN, ES, PT</td><td><span class="text-green">ON STANDBY</span></td></tr>
+                                <tr><td>David Kim</td><td><span class="priority-tag tag-low">SHELTER MGMT</span></td><td>2.1 miles</td><td>EN, KO</td><td><span class="text-blue">DEPLOYED</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. COMMS VIEW -->
+            <div id="view-comms" class="view-section">
+                <div class="view-header"><h2>Communication Dispatch</h2><p>Review and broadcast AI-generated public safety announcements.</p></div>
+                <div class="panel" style="padding: 1.5rem;">
+                    <div class="comms-console">
+                        <div class="comms-templates">
+                            <h3 style="margin-bottom: 1rem;">Drafted Payloads</h3>
+                            <div class="template-card">
+                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;"><strong>Tier 1 Evacuation</strong><span class="priority-tag tag-high">SMS</span></div>
+                                <p style="font-size:0.8rem; color:var(--text-secondary)">Target: Sector Alpha (125k users)</p>
+                            </div>
+                            <div class="template-card">
+                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;"><strong>Boil Water Advisory</strong><span class="priority-tag tag-med">EMAIL</span></div>
+                                <p style="font-size:0.8rem; color:var(--text-secondary)">Target: Riverway Basin (45k users)</p>
+                            </div>
+                        </div>
+                        <div class="comms-editor">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3>Message Editor</h3>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <span class="priority-tag tag-low">EN</span>
+                                    <span class="priority-tag tag-low">ES</span>
+                                    <span class="priority-tag tag-low">ZH</span>
+                                </div>
+                            </div>
+                            <textarea>EMERGENCY ALERT: Mandatory Evacuation Order issued for Sector Alpha due to structural instability following seismic activity. Proceed immediately to designated shelters at City High School. Do not use Route 4 bridge.</textarea>
+                            <div style="display:flex; justify-content:flex-end; gap: 1rem;">
+                                <button class="btn-primary" style="background:var(--bg-panel); color:var(--text-primary)">Save Draft</button>
+                                <button class="btn-primary" style="background:var(--accent-red)">Broadcast Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. ANALYTICS VIEW -->
+            <div id="view-analytics" class="view-section">
+                <div class="view-header"><h2>System Analytics</h2><p>Performance metrics and historical efficiency reports.</p></div>
+                <div class="grid-2">
+                    <div class="panel" style="padding: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem;">Average Response Time (Min)</h3>
+                        <div class="mock-chart">
+                            <div class="bar" style="height: 40%;"></div><div class="bar" style="height: 60%;"></div>
+                            <div class="bar" style="height: 30%;"></div><div class="bar" style="height: 80%;"></div>
+                            <div class="bar" style="height: 20%;"></div><div class="bar" style="height: 50%;"></div>
+                            <div class="bar" style="height: 15%;"></div>
+                        </div>
+                    </div>
+                    <div class="panel" style="padding: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem;">Asset Deployment Efficiency</h3>
+                        <div class="mock-chart">
+                            <div class="bar" style="height: 80%; background:var(--accent-green)"></div><div class="bar" style="height: 85%; background:var(--accent-green)"></div>
+                            <div class="bar" style="height: 90%; background:var(--accent-green)"></div><div class="bar" style="height: 92%; background:var(--accent-green)"></div>
+                            <div class="bar" style="height: 88%; background:var(--accent-green)"></div><div class="bar" style="height: 95%; background:var(--accent-green)"></div>
+                            <div class="bar" style="height: 98%; background:var(--accent-green)"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. SETTINGS VIEW -->
+            <div id="view-settings" class="view-section">
+                <div class="view-header"><h2>Platform Settings</h2><p>Configure agent permissions, API integrations, and global preferences.</p></div>
+                <div class="grid-2">
+                    <div class="panel" style="padding: 2rem;">
+                        <h3 style="margin-bottom: 1.5rem; color:var(--accent-blue)">AI Agent Autonomy</h3>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+                            <div>
+                                <div style="font-weight:600; margin-bottom:0.25rem;">Auto-Dispatch Resources</div>
+                                <div style="font-size:0.8rem; color:var(--text-secondary)">Allow Resource Agent to deploy assets without human approval.</div>
+                            </div>
+                            <div class="toggle-switch"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+                            <div>
+                                <div style="font-weight:600; margin-bottom:0.25rem;">Auto-Broadcast SMS</div>
+                                <div style="font-size:0.8rem; color:var(--text-secondary)">Allow Communication Agent to send Tier 1 alerts instantly.</div>
+                            </div>
+                            <div class="toggle-switch" style="background:var(--bg-panel);"><div style="background:var(--text-muted); right:auto; left:3px; position:absolute; width:18px; height:18px; border-radius:50%; top:3px;"></div></div>
+                        </div>
+                    </div>
+                    <div class="panel" style="padding: 2rem;">
+                        <h3 style="margin-bottom: 1.5rem; color:var(--accent-blue)">API Integrations</h3>
+                        <div class="form-group">
+                            <label>USGS Earthquake API Key</label>
+                            <input type="password" class="form-control" value="••••••••••••••••••••">
+                        </div>
+                        <div class="form-group">
+                            <label>Twilio SMS Gateway Token</label>
+                            <input type="password" class="form-control" value="••••••••••••••••••••">
+                        </div>
+                        <button class="btn-primary" style="margin-top:1rem;">Save Configurations</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // SPA Routing Logic
+        const navItems = document.querySelectorAll('.sidebar-nav .nav-item, .sidebar-footer .nav-item');
+        const viewSections = document.querySelectorAll('.view-section');
+        const breadcrumbCurrent = document.getElementById('breadcrumb-current');
+        const globalControls = document.getElementById('global-controls');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = item.getAttribute('data-target');
+                if(!targetId) return;
+
+                // Update nav active state
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+
+                // Update breadcrumb
+                breadcrumbCurrent.textContent = item.textContent.trim();
+
+                // Hide all views, show target
+                viewSections.forEach(sec => sec.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+
+                // Hide top controls if not on dashboard
+                if(targetId === 'view-dashboard') {
+                    globalControls.style.display = 'flex';
+                } else {
+                    globalControls.style.display = 'none';
+                }
+            });
+        });
+
+        // Dashboard Simulation Logic
+        const scenarioSelector = document.getElementById('scenario-selector');
+        const btnRun = document.getElementById('btn-run');
+        const mapView = document.getElementById('map-view');
+        const directivesBody = document.getElementById('directives-body');
+        const agentPipeline = document.getElementById('agent-pipeline');
+        const kpiAssets = document.getElementById('kpi-assets');
+        const kpiVolunteers = document.getElementById('kpi-volunteers');
+
+        const agents = [
+            { id: 'coordinator', name: 'Coordinator Agent', icon: 'hub' },
+            { id: 'incident', name: 'Incident Analysis', icon: 'emergency' },
+            { id: 'resource', name: 'Resource Allocation', icon: 'local_shipping' },
+            { id: 'volunteer', name: 'Volunteer Coordination', icon: 'groups' },
+            { id: 'comms', name: 'Communications', icon: 'campaign' },
+            { id: 'decision', name: 'Decision Support', icon: 'psychology' },
+            { id: 'report', name: 'Situation Report', icon: 'insert_chart' }
+        ];
+
+        const scenarioData = {
+            earthquake: {
+                coordinator: { log: "> Initializing Operation: Tremor Response.\n> Dispatching telemetry data to Incident Analysis...", delay: 1000 },
+                incident: { log: "> Ingesting USGS API data...\n> Magnitude: 7.2\n> Epicenter: 34.05,-118.24\n> Structural damage estimated at 42% in Sector Alpha.", tasks: [{ priority: 'high', title: 'Dispatch Structural Assessment Drones', agent: 'Incident Analysis' }], delay: 1500 },
+                resource: { log: "> Scanning local inventory buffers...\n> Allocated: 12 Heavy Extractors\n> Allocated: 4000L IV Fluids\n> Rerouting supply trucks to safe zones.", tasks: [{ priority: 'high', title: 'Route Heavy Extractors to Sector Alpha', agent: 'Resource Allocation' }, { priority: 'med', title: 'Establish Triage Tent at City Park', agent: 'Resource Allocation' }], metrics: { assets: 142 }, delay: 1200 },
+                volunteer: { log: "> Querying active volunteer DB...\n> Match found: 45 Medical, 120 Logistics.\n> Pushing deployment coordinates to mobile apps.", tasks: [{ priority: 'med', title: 'Deploy Volunteer Squad Alpha (Med)', agent: 'Volunteer Coordination' }], metrics: { volunteers: 165 }, delay: 1000 },
+                comms: { log: "> Generating multilingual payload...\n> Translating to ES, ZH, KO.\n> Dispatching via Cellular Broadcast Protocol.", tasks: [{ priority: 'high', title: 'Issue Tier 1 Evac Warning (Cell Broadcast)', agent: 'Communications' }], delay: 1500 },
+                decision: { log: "> Computing constraints and bottleneck matrix...\n> Warning: Route 4 bridge structural failure imminent.\n> Suggested action: Divert all traffic to Highway 101.", tasks: [{ priority: 'high', title: 'Divert Traffic - Close Route 4', agent: 'Decision Support' }], delay: 1800 },
+                report: { log: "> Compiling executive payload...\n> Generating PDF and data-vis charts...\n> Transmission to Command HQ successful.", tasks: [{ priority: 'low', title: 'Distribute 14:00 Hourly Briefing', agent: 'Situation Report' }], delay: 1000 }
+            },
+            hurricane: {
+                coordinator: { log: "> Initializing Operation: Coastal Shield.\n> Activating weather grid trackers...", delay: 800 },
+                incident: { log: "> Windspeed: 165mph. Storm surge: 12ft predicted.\n> Coastal flooding imminent.", tasks: [{priority:'high', title:'Trigger Coastal Sirens', agent:'Incident Analysis'}], delay: 1200 },
+                resource: { log: "> Unlocking municipal sandbag reserves.\n> Deploying 15 High-water rescue vehicles.", tasks: [{priority:'high', title:'Deploy High-water Vehicles', agent:'Resource Allocation'}], metrics: { assets: 85 }, delay: 1000 },
+                volunteer: { log: "> Mobilizing shelter management volunteers.\n> 40 personnel dispatched to High School B.", tasks: [{priority:'med', title:'Staff Emergency Shelter B', agent:'Volunteer Coordination'}], metrics: { volunteers: 40 }, delay: 1000 },
+                comms: { log: "> Drafting mandatory evacuation notices.", tasks: [{priority:'high', title:'Broadcast Evac Notice', agent:'Communications'}], delay: 1000 },
+                decision: { log: "> Simulating surge trajectory...\n> Power grid sub-station 4 at risk of inundation.", tasks: [{priority:'high', title:'Preemptive Power Cut (Sector 4)', agent:'Decision Support'}], delay: 1500 },
+                report: { log: "> Dashboard updated. Surge models attached.", tasks: [], delay: 800 }
+            },
+            wildfire: {
+                coordinator: { log: "> Initializing Operation: Inferno Containment.", delay: 800 },
+                incident: { log: "> Satellite thermography confirms 4,000 acre burn.\n> Wind shifting North at 25mph.", tasks: [{priority:'high', title:'Update Fire Boundary Map', agent:'Incident Analysis'}], delay: 1200 },
+                resource: { log: "> Requesting aerial retardant drops (2x C-130s).", tasks: [{priority:'high', title:'Approve Aerial Drop', agent:'Resource Allocation'}], metrics: { assets: 12 }, delay: 1000 },
+                volunteer: { log: "> Mobilizing animal rescue teams.", tasks: [{priority:'med', title:'Evacuate County Shelter', agent:'Volunteer Coordination'}], metrics: { volunteers: 25 }, delay: 1000 },
+                comms: { log: "> Issuing smoke/air-quality warnings.", tasks: [{priority:'med', title:'Issue AQI Alert', agent:'Communications'}], delay: 1000 },
+                decision: { log: "> Evacuation route I-5 is bottlenecking. Reroute via Route 99.", tasks: [{priority:'high', title:'Implement Traffic Diversion', agent:'Decision Support'}], delay: 1500 },
+                report: { log: "> Containment at 14%. Summary dispatched.", tasks: [], delay: 800 }
+            }
+        };
+
+        scenarioSelector.addEventListener('change', () => { btnRun.disabled = false; });
+
+        function getPriorityClass(p) {
+            if(p === 'high') return 'tag-high';
+            if(p === 'med') return 'tag-med';
+            return 'tag-low';
+        }
+
+        function initPipeline() {
+            agentPipeline.innerHTML = '';
+            agents.forEach(agent => {
+                const node = document.createElement('div');
+                node.className = 'agent-node';
+                node.id = `node-${agent.id}`;
+                node.innerHTML = `
+                    <div class="node-icon"><span class="material-symbols-outlined">${agent.icon}</span></div>
+                    <div class="node-content">
+                        <div class="node-header">
+                            <span class="node-title">${agent.name}</span>
+                            <span class="node-time" id="time-${agent.id}">--:--:--</span>
+                        </div>
+                        <div class="node-console" id="console-${agent.id}">Awaiting initialization...</div>
+                    </div>
+                `;
+                agentPipeline.appendChild(node);
+            });
+        }
+
+        function appendTask(task) {
+            const emptyRow = document.querySelector('.empty-row');
+            if(emptyRow) emptyRow.remove();
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="priority-tag ${getPriorityClass(task.priority)}">${task.priority}</span></td>
+                <td style="font-weight: 500;">${task.title}</td>
+                <td style="color: var(--text-secondary);">${task.agent}</td>
+                <td><span class="text-amber">PENDING</span></td>
+            `;
+            directivesBody.prepend(tr);
+        }
+
+        function generateMapPings() {
+            mapView.innerHTML = ''; 
+            mapView.classList.add('active');
+            for(let i=0; i<5; i++) {
+                const ping = document.createElement('div');
+                ping.className = 'radar-ping';
+                ping.style.top = Math.floor(Math.random() * 80 + 10) + '%';
+                ping.style.left = Math.floor(Math.random() * 80 + 10) + '%';
+                mapView.appendChild(ping);
+            }
+        }
+
+        btnRun.addEventListener('click', async () => {
+            const scenario = scenarioSelector.value;
+            const data = scenarioData[scenario];
+            if(!data) return;
+
+            btnRun.disabled = true;
+            directivesBody.innerHTML = '';
+            kpiAssets.textContent = "0";
+            kpiVolunteers.textContent = "0";
+            
+            initPipeline();
+            generateMapPings();
+
+            const now = new Date();
+
+            for(let i=0; i<agents.length; i++) {
+                const agent = agents[i];
+                const stepData = data[agent.id];
+                const node = document.getElementById(`node-${agent.id}`);
+                const consoleEl = document.getElementById(`console-${agent.id}`);
+                const timeEl = document.getElementById(`time-${agent.id}`);
+
+                node.classList.add('active');
+                consoleEl.textContent = "> Processing...";
+                consoleEl.classList.add('text-blue');
+                
+                await new Promise(r => setTimeout(r, stepData.delay));
+
+                node.classList.remove('active');
+                node.classList.add('completed');
+                
+                const timestamp = new Date(now.getTime() + (i * 1500));
+                timeEl.textContent = timestamp.toTimeString().split(' ')[0] + "." + Math.floor(Math.random()*999);
+                
+                consoleEl.classList.remove('text-blue');
+                consoleEl.innerHTML = `<span class="typewriter-text">${stepData.log.replace(/\n/g, '<br>')}</span>`;
+
+                if(stepData.metrics) {
+                    if(stepData.metrics.assets) kpiAssets.textContent = stepData.metrics.assets;
+                    if(stepData.metrics.volunteers) kpiVolunteers.textContent = stepData.metrics.volunteers;
+                }
+                if(stepData.tasks) {
+                    stepData.tasks.forEach(t => appendTask(t));
+                }
+            }
+
+            btnRun.disabled = false;
+        });
+
+        initPipeline();
+    </script>
+</body>
+</html>
